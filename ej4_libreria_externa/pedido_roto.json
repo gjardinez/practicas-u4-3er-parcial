@@ -1,0 +1,6 @@
+{
+  "cliente": "Cliente con JSON mal escrito",
+  "articulos": [
+    { "nombre": "Cuaderno", "cantidad": 2 "precio": 45.50 }
+  ]
+}

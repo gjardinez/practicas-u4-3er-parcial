@@ -1,0 +1,6 @@
+{
+  "cliente": "Cliente con un campo faltante",
+  "articulos": [
+    { "nombre": "Cuaderno", "cantidad": 2 }
+  ]
+}
