@@ -98,6 +98,20 @@ double leerDouble(const string& etiqueta) {
     }
 }
 
+int leerEntero(const string& etiqueta) {
+    while (true) {
+        cout << etiqueta;
+        string s;
+        if (!getline(cin, s)) throw runtime_error("entrada terminada");
+        try {
+            size_t usados;
+            int v = stoi(s, &usados);
+            if (usados == s.size() && v >= 0) return v;
+        } catch (const logic_error&) {}
+        cout << "  Valor inválido, escribe un número entero mayor o igual a 0.\n";
+    }
+}
+
 int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -124,7 +138,7 @@ int main() {
                     getline(cin, nombre);
                     if (nombre.empty()) { cout << "  El nombre es obligatorio.\n"; continue; }
                     double precio = leerDouble("Precio: ");
-                    int stock = static_cast<int>(leerDouble("Stock: "));
+                    int stock = leerEntero("Stock: ");
                     bd.insertarProducto(nombre, precio, stock);
                     cout << "  Producto insertado.\n";
                 } else if (op == "2") {
