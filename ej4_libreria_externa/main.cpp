@@ -65,7 +65,8 @@ int main(int argc, char* argv[]) {
             long long cantidad = art.at("cantidad").get<long long>();
             double precio = art.at("precio").get<double>();
             if (cantidad <= 0 || cantidad > 100000 || precio < 0)
-                throw PedidoInvalidoException("El artículo \"" + nombre + "\" tiene cantidad o precio inválido.");
+                throw PedidoInvalidoException("El artículo \"" + nombre +
+                                              "\" tiene cantidad o precio inválido.");
             double importe = cantidad * precio;
             subtotal += importe;
             renglones.push_back({{"nombre", nombre}, {"cantidad", cantidad}, {"importe", centavos(importe)}});
