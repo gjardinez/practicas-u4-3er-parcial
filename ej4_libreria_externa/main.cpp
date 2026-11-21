@@ -20,10 +20,22 @@ const double IVA = 0.16;
 // Redondea a centavos para que el JSON no guarde cosas como 886.704
 double centavos(double x) { return std::round(x * 100.0) / 100.0; }
 
+// Excepciones propias para los errores que no vienen de la librería
+class ArchivoNoEncontradoException : public runtime_error {
+public:
+    explicit ArchivoNoEncontradoException(const string& ruta)
+        : runtime_error("No se encontró el archivo " + ruta) {}
+};
+
+class PedidoInvalidoException : public runtime_error {
+public:
+    explicit PedidoInvalidoException(const string& msg) : runtime_error(msg) {}
+};
+
 json cargarJson(const string& ruta) {
     ifstream in(ruta);
     if (!in)
-        throw runtime_error("No se encontró el archivo " + ruta);
+        throw ArchivoNoEncontradoException(ruta);
     return json::parse(in);  // lanza json::parse_error si el JSON está mal escrito
 }
 
@@ -50,8 +62,10 @@ int main(int argc, char* argv[]) {
 
         for (const json& art : pedido.at("articulos")) {
             string nombre = art.at("nombre").get<string>();
-            int cantidad = art.at("cantidad").get<int>();
+            long long cantidad = art.at("cantidad").get<long long>();
             double precio = art.at("precio").get<double>();
+            if (cantidad <= 0 || cantidad > 100000 || precio < 0)
+                throw PedidoInvalidoException("El artículo \"" + nombre + "\" tiene cantidad o precio inválido.");
             double importe = cantidad * precio;
             subtotal += importe;
             renglones.push_back({{"nombre", nombre}, {"cantidad", cantidad}, {"importe", centavos(importe)}});
@@ -86,8 +100,11 @@ int main(int argc, char* argv[]) {
     } catch (const json::type_error& e) {
         cout << "[json::type_error] Un campo tiene un tipo incorrecto: " << e.what() << "\n";
         return 1;
-    } catch (const runtime_error& e) {
-        cout << "[Error] " << e.what() << "\n";
+    } catch (const PedidoInvalidoException& e) {
+        cout << "[PedidoInvalido] " << e.what() << "\n";
+        return 1;
+    } catch (const ArchivoNoEncontradoException& e) {
+        cout << "[ArchivoNoEncontrado] " << e.what() << "\n";
         return 1;
     }
     return 0;
