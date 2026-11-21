@@ -16,20 +16,32 @@ using namespace std;
 const string ARCHIVO = "tareas.txt";
 const size_t MINIMO = 5;
 
+// Excepciones propias para distinguir si falló la lectura o la escritura
+class ArchivoNoEncontradoException : public runtime_error {
+public:
+    explicit ArchivoNoEncontradoException(const string& ruta)
+        : runtime_error("El archivo \"" + ruta + "\" no existe todavía. Usa primero la opción 1.") {}
+};
+
+class ErrorEscrituraException : public runtime_error {
+public:
+    explicit ErrorEscrituraException(const string& msg) : runtime_error(msg) {}
+};
+
 void guardarTareas(const vector<string>& tareas, const string& ruta) {
     ofstream out(ruta);  // sobrescribe el archivo anterior
     if (!out)
-        throw runtime_error("No se pudo crear/abrir \"" + ruta + "\" para escritura.");
+        throw ErrorEscrituraException("No se pudo crear/abrir \"" + ruta + "\" para escritura.");
     for (const string& t : tareas)
         out << t << '\n';
     if (!out)
-        throw runtime_error("Ocurrió un error al escribir en \"" + ruta + "\".");
+        throw ErrorEscrituraException("Ocurrió un error al escribir en \"" + ruta + "\".");
 }
 
 vector<string> leerTareas(const string& ruta) {
     ifstream in(ruta);
     if (!in)
-        throw runtime_error("El archivo \"" + ruta + "\" no existe todavía. Usa primero la opción 1.");
+        throw ArchivoNoEncontradoException(ruta);
     vector<string> tareas;
     string linea;
     while (getline(in, linea))
@@ -80,8 +92,10 @@ int main() {
             if (op == "1") modoGuardar();
             else if (op == "2") modoLeer();
             else cout << "Opción no válida.\n";
-        } catch (const runtime_error& e) {
-            cout << "  [Error de archivo] " << e.what() << "\n";
+        } catch (const ArchivoNoEncontradoException& e) {
+            cout << "  [ArchivoNoEncontrado] " << e.what() << "\n";
+        } catch (const ErrorEscrituraException& e) {
+            cout << "  [ErrorEscritura] " << e.what() << "\n";
         }
     }
     cout << "Hasta luego.\n";
