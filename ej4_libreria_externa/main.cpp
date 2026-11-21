@@ -32,6 +32,11 @@ public:
     explicit PedidoInvalidoException(const string& msg) : runtime_error(msg) {}
 };
 
+class ErrorEscrituraException : public runtime_error {
+public:
+    explicit ErrorEscrituraException(const string& msg) : runtime_error(msg) {}
+};
+
 json cargarJson(const string& ruta) {
     ifstream in(ruta);
     if (!in)
@@ -62,6 +67,9 @@ int main(int argc, char* argv[]) {
 
         for (const json& art : pedido.at("articulos")) {
             string nombre = art.at("nombre").get<string>();
+            if (art.at("cantidad").is_number_float())  // 2.7 no debe truncarse a 2
+                throw PedidoInvalidoException("El artículo \"" + nombre +
+                                              "\" tiene una cantidad decimal; debe ser entera.");
             long long cantidad = art.at("cantidad").get<long long>();
             double precio = art.at("precio").get<double>();
             if (cantidad <= 0 || cantidad > 100000 || precio < 0)
@@ -90,6 +98,8 @@ int main(int argc, char* argv[]) {
         };
         ofstream out("ticket.json");
         out << setw(2) << ticket << "\n";
+        if (!out)
+            throw ErrorEscrituraException("No se pudo escribir ticket.json.");
         cout << "\nTicket de " << cliente << " guardado en ticket.json\n";
 
     } catch (const json::parse_error& e) {
@@ -106,6 +116,9 @@ int main(int argc, char* argv[]) {
         return 1;
     } catch (const ArchivoNoEncontradoException& e) {
         cout << "[ArchivoNoEncontrado] " << e.what() << "\n";
+        return 1;
+    } catch (const ErrorEscrituraException& e) {
+        cout << "[ErrorEscritura] " << e.what() << "\n";
         return 1;
     }
     return 0;
