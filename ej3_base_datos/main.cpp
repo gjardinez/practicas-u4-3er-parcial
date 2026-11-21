@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <string>
 #include <stdexcept>
+#include <cmath>
 #include "sqlite3.h"
 
 #ifdef _WIN32
@@ -72,14 +73,18 @@ public:
         cout << left << setw(4) << "ID" << setw(22) << "Nombre" << right << setw(10) << "Precio"
              << setw(8) << "Stock" << "\n" << string(44, '-') << "\n";
         int filas = 0;
-        while (sqlite3_step(st) == SQLITE_ROW) {
+        int rc;
+        while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
             cout << left << setw(4) << sqlite3_column_int(st, 0)
                  << rellenar(reinterpret_cast<const char*>(sqlite3_column_text(st, 1)), 22)
                  << right << fixed << setprecision(2) << setw(10) << sqlite3_column_double(st, 2)
                  << setw(8) << sqlite3_column_int(st, 3) << "\n";
             ++filas;
         }
+        string msg = sqlite3_errmsg(db);
         sqlite3_finalize(st);
+        if (rc != SQLITE_DONE)  // el ciclo también termina si hubo un error de lectura
+            throw ErrorBD(msg);
         cout << "(" << filas << " registro(s))\n";
     }
 };
@@ -92,8 +97,10 @@ double leerDouble(const string& etiqueta) {
         try {
             size_t usados;
             double v = stod(s, &usados);
-            if (usados == s.size() && v >= 0) return v;
-        } catch (const logic_error&) {}  // invalid_argument / out_of_range
+            if (usados == s.size() && isfinite(v) && v >= 0) return v;  // isfinite rechaza "inf"
+        } catch (const invalid_argument&) {  // no es un número
+        } catch (const out_of_range&) {      // número demasiado grande
+        }
         cout << "  Valor inválido, escribe un número mayor o igual a 0.\n";
     }
 }
@@ -107,7 +114,9 @@ int leerEntero(const string& etiqueta) {
             size_t usados;
             int v = stoi(s, &usados);
             if (usados == s.size() && v >= 0) return v;
-        } catch (const logic_error&) {}
+        } catch (const invalid_argument&) {  // no es un número
+        } catch (const out_of_range&) {      // número demasiado grande
+        }
         cout << "  Valor inválido, escribe un número entero mayor o igual a 0.\n";
     }
 }
