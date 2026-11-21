@@ -46,7 +46,7 @@ class RepositorioTareas {
 
 public:
     explicit RepositorioTareas(const string& ruta) {
-        // Sin SQLITE_OPEN_CREATE para carpetas inexistentes falla igual; con CREATE crea el archivo
+        // Con SQLITE_OPEN_CREATE se crea el archivo si no existe; si la carpeta no existe, la apertura falla
         int rc = sqlite3_open_v2(ruta.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
         if (rc != SQLITE_OK) {
             string msg = db ? sqlite3_errmsg(db) : "sin memoria";
@@ -54,10 +54,17 @@ public:
             db = nullptr;
             throw ConexionBDException("No se pudo conectar a \"" + ruta + "\": " + msg);
         }
-        exec("CREATE TABLE IF NOT EXISTS tareas ("
-             " id INTEGER PRIMARY KEY AUTOINCREMENT,"
-             " descripcion TEXT NOT NULL,"
-             " creada TEXT DEFAULT (datetime('now','localtime')));");
+        try {
+            exec("CREATE TABLE IF NOT EXISTS tareas ("
+                 " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                 " descripcion TEXT NOT NULL,"
+                 " creada TEXT DEFAULT (datetime('now','localtime')));");
+        } catch (const ConsultaBDException& e) {
+            // p. ej. el archivo existe pero no es una base de datos: es una falla de conexión
+            sqlite3_close(db);  // si el constructor lanza, el destructor no se ejecuta
+            db = nullptr;
+            throw ConexionBDException("\"" + ruta + "\" no es una base de datos válida: " + e.what());
+        }
     }
     ~RepositorioTareas() { sqlite3_close(db); }
     RepositorioTareas(const RepositorioTareas&) = delete;
@@ -66,7 +73,8 @@ public:
     int insertarVarias(const vector<string>& tareas) {
         exec("BEGIN;");
         sqlite3_stmt* st = nullptr;
-        if (sqlite3_prepare_v2(db, "INSERT INTO tareas(descripcion) VALUES(?);", -1, &st, nullptr) != SQLITE_OK) {
+        const char* sql = "INSERT INTO tareas(descripcion) VALUES(?);";
+        if (sqlite3_prepare_v2(db, sql, -1, &st, nullptr) != SQLITE_OK) {
             exec("ROLLBACK;");
             throw ConsultaBDException(sqlite3_errmsg(db));
         }
@@ -87,16 +95,21 @@ public:
 
     void listar() {
         sqlite3_stmt* st = nullptr;
-        if (sqlite3_prepare_v2(db, "SELECT id, descripcion, creada FROM tareas ORDER BY id;", -1, &st, nullptr) != SQLITE_OK)
+        const char* sql = "SELECT id, descripcion, creada FROM tareas ORDER BY id;";
+        if (sqlite3_prepare_v2(db, sql, -1, &st, nullptr) != SQLITE_OK)
             throw ConsultaBDException(sqlite3_errmsg(db));
         int n = 0;
-        while (sqlite3_step(st) == SQLITE_ROW) {
+        int rc;
+        while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
             cout << "  #" << sqlite3_column_int(st, 0) << "  "
                  << reinterpret_cast<const char*>(sqlite3_column_text(st, 1)) << "   ("
                  << reinterpret_cast<const char*>(sqlite3_column_text(st, 2)) << ")\n";
             ++n;
         }
+        string msg = sqlite3_errmsg(db);
         sqlite3_finalize(st);
+        if (rc != SQLITE_DONE)
+            throw ConsultaBDException(msg);
         cout << "  Total: " << n << " tarea(s)\n";
     }
 };
