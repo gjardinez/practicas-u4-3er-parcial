@@ -1,0 +1,9 @@
+{
+  "cliente": "Papelería El Estudiante",
+  "articulos": [
+    { "nombre": "Cuaderno profesional", "cantidad": 3, "precio": 45.50 },
+    { "nombre": "Pluma azul", "cantidad": 10, "precio": 8.00 },
+    { "nombre": "Calculadora", "cantidad": 1, "precio": 289.90 },
+    { "nombre": "Memoria USB 32GB", "cantidad": 2, "precio": 129.00 }
+  ]
+}

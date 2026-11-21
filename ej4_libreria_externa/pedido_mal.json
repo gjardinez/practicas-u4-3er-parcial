@@ -1,0 +1,6 @@
+{
+  "cliente": "Cliente con error",
+  "articulos": [
+    { "nombre": "Cuaderno", "cantidad": "tres", "precio": 45.50 }
+  ]
+}
